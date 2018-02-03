@@ -32,6 +32,7 @@ instance FromJSON PostListing where
 
 data PostListingData = PostListingData {
     title :: String
+    , selftext :: String
   } deriving (Generic, Show)
 
 instance FromJSON PostListingData
