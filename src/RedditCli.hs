@@ -11,16 +11,42 @@ import Data.Aeson
 import Data.Aeson.Lens
 import Data.List
 import Data.Maybe
+import Data.Char (digitToInt)
 import qualified Data.Text as T
 import qualified Data.ByteString.Char8 as BS
 import Data.Map as Map
 import SubRedditData
 import Text.Show
+import CommentsData
 
 getSubRedditChildren :: String -> IO [PostListing]
-getSubRedditChildren subreddit = do
- r <- asJSON =<< get subreddit
+getSubRedditChildren sub = do
+ r <- asJSON =<< get ("https://reddit.com/r/" ++ sub ++ ".json")
  return . subRedditChildren . subRedditData  $ r ^. responseBody
+
+getComments sub num ps = do
+  r <- asJSON =<< get ("https://reddit.com/r/" ++ sub ++ "/comments/" ++ (SubRedditData.id . postListingData $ ps !! (num - 1)) ++ ".json")
+  return $ r ^. responseBody
+
+commentsToString :: [Comment] -> String ->  String
+commentsToString xs str = Prelude.foldl commentToString str xs
+
+commentToString :: String -> Comment -> String
+commentToString x y = let
+  cData = commentData $ y
+  indent = getIndent . kind $ y
+  newStr = x ++ "\n" ++ indent ++ (author cData) ++ " - ↑" ++ (show $ ups cData) ++ " ↓" ++ (show $ downs cData) ++ ": " ++ (body cData) ++ "\n"
+  in  (commentsToString (CommentsData.children cData) newStr) ++ (replyStr replies cData)
+
+replyStr x
+  | length x > 0 = commentsToString x
+  | otherwise = ""
+
+
+getIndent :: String -> String
+getIndent x
+  | x == "Listing" = ""
+  | otherwise = Prelude.map (\x -> ' ') [0..(digitToInt $ (!!) x 1)]
 
 resToString :: [PostListing] -> String
 resToString xs = let ys = zip [0..] xs
@@ -33,15 +59,19 @@ articleToStr x y =
         w = postListingData z
   in x ++ index ++ ". " ++ (title w) ++ "\n\n"
 
-createUrl subreddit = ("https://reddit.com/r/" ++ subreddit ++ ".json")
 
 redditCli :: IO ()
 redditCli = do
-  -- putStrLn $ getListNumber [1, 2] 1
   putStrLn "Enter a subreddit" 
   do 
     line <- getLine
     do
-      res <- getSubRedditChildren (createUrl line)
+      res <- getSubRedditChildren line
       do
-        putStrLn (resToString res)
+        putStrLn . (++) (resToString res) $ (++) "\n\n" "Enter Number To View Comments"
+        do
+          num <- getLine
+          do
+            commentsRes <- getComments line (read num) res
+            do
+              putStrLn (commentsToString commentsRes "")
