@@ -18,6 +18,7 @@ import Data.Map as Map
 import SubRedditData
 import Text.Show
 import CommentsData
+import Data.Either
 
 getSubRedditChildren :: String -> IO [PostListing]
 getSubRedditChildren sub = do
@@ -36,11 +37,13 @@ commentToString x y = let
   cData = commentData $ y
   indent = getIndent . kind $ y
   newStr = x ++ "\n" ++ indent ++ (author cData) ++ " - ↑" ++ (show $ ups cData) ++ " ↓" ++ (show $ downs cData) ++ ": " ++ (body cData) ++ "\n"
-  in  (commentsToString (CommentsData.children cData) newStr) ++ (replyStr replies cData)
+  in  (commentsToString (CommentsData.children cData) newStr) ++ (replyStr $ replies cData)
 
+
+replyStr :: Either String Comment -> String
 replyStr x
-  | length x > 0 = commentsToString x
-  | otherwise = ""
+  | isLeft x = ""
+  | isRight x = commentToString "" (fromRight emptyComment x)
 
 
 getIndent :: String -> String

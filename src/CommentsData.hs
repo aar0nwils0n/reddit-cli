@@ -24,7 +24,7 @@ strToArr x = []
 
 data CommentData = CommentData {
   children :: [Comment]
-  , replies :: Either String [Comment]
+  , replies :: Either String Comment
   , body :: String
   , author :: String
   , ups :: Int
@@ -34,8 +34,11 @@ data CommentData = CommentData {
 instance FromJSON CommentData where
   parseJSON (Object x) = CommentData
     <$> x .:? "children" .!= []
-    <*> ((Left . strToArr <$> x .: "replies") <|> (Right <$> x .: "replies"))
+    <*> ((Left <$> x .:? "replies" .!= "") <|> (Right <$> x .:? "replies" .!= emptyComment))
     <*> x .:? "body" .!= ""
     <*> x .:? "author" .!= ""
     <*> x .:? "ups" .!= 0
     <*> x .:? "downs" .!= 0
+
+emptyComment = Comment emptyCommentData ""
+emptyCommentData = CommentData ([]::[Comment]) (Left "") "" "" 0 0
