@@ -66,15 +66,10 @@ articleToStr x y =
 redditCli :: IO ()
 redditCli = do
   putStrLn "Enter a subreddit" 
-  do 
-    line <- getLine
-    do
-      res <- getSubRedditChildren line
-      do
-        putStrLn . (++) (resToString res) $ (++) "\n\n" "Enter Number To View Comments"
-        do
-          num <- getLine
-          do
-            commentsRes <- getComments line (read num) res
-            do
-              putStrLn (commentsToString commentsRes "")
+  line <- getLine
+  res <- getSubRedditChildren line
+  putStrLn . (++) (resToString res) $ (++) "\n\n" "Enter Number To View Comments"
+  num <- getLine
+  commentsRes <- getComments line (read num) res
+  putStrLn (commentsToString commentsRes "")
+  redditCli
